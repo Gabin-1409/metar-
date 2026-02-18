@@ -1,52 +1,57 @@
 import requests
 
-def fetch_metar(icao: str):
+# ====== CONFIG ======
+API_KEY = "4NsiTqSyoLYrMyZghTgqVtZRFE6HhijN"  # your API key
+BASE_URL = "https://aviationweather.gov/api/data/metar"
+# ====================
+
+def fetch_metar(icao_code: str):
     """
-    Fetch the latest METAR for a given ICAO code using AviationWeather.gov Data API.
+    Fetch METAR from AviationWeather.gov API using API key.
     """
-    base_url = "https://aviationweather.gov/api/data/metar"
     params = {
-        "ids": icao.upper(),     # ICAO code (e.g., KJFK, EGLL)
-        "format": "json",        # JSON output
-        "hours": "1",            # recent data (last 1 hour)
+        "ids": icao_code.upper(),
+        "format": "json",
+        "hours": "1"  # last 1 hour of reports
     }
-    
-    # Make request
+    headers = {"Authorization": API_KEY}
+
     try:
-        response = requests.get(base_url, params=params, timeout=10)
+        response = requests.get(BASE_URL, params=params, headers=headers, timeout=10)
         response.raise_for_status()
     except Exception as e:
-        print(f"Error retrieving METAR: {e}")
-        return
+        print(f"Error fetching METAR: {e}")
+        return None
 
     data = response.json()
-    results = data.get("data", [])
-    
-    if not results:
-        print(f"No METAR data available for {icao.upper()}.")
-        return
+    if not data or "data" not in data or len(data["data"]) == 0:
+        print(f"No METAR data available for {icao_code.upper()}.")
+        return None
 
-    metar = results[0]
-    
-    # Extract some fields
-    raw_text = metar.get("raw_text", "N/A")
-    station = metar.get("station_id", "N/A")
-    obs_time = metar.get("observation_time", "N/A")
-    temp_c = metar.get("temp_c", "N/A")
-    wind_dir_degrees = metar.get("wind_dir_degrees", "N/A")
-    wind_speed_kt = metar.get("wind_speed_kt", "N/A")
-    visibility_statute_mi = metar.get("visibility_statute_mi", "N/A")
-    
-    print(f"\n=== METAR for {station} ===")
-    print(f"Observation Time: {obs_time}")
-    print(f"Raw METAR Text: {raw_text}")
-    print(f"Temperature: {temp_c} °C")
-    print(f"Wind: {wind_dir_degrees}° at {wind_speed_kt} kt")
-    print(f"Visibility: {visibility_statute_mi} statute miles\n")
+    return data["data"][0]  # return first report
+
+def display_metar(metar):
+    print(f"\n=== METAR for {metar.get('station_id', 'N/A')} ===")
+    print(f"Observation Time: {metar.get('observation_time', 'N/A')}")
+    print(f"Raw METAR: {metar.get('raw_text', 'N/A')}")
+    print(f"Temperature: {metar.get('temp_c', 'N/A')} °C")
+    print(f"Dewpoint: {metar.get('dewpoint_c', 'N/A')} °C")
+    print(f"Wind: {metar.get('wind_dir_degrees', 'N/A')}° at {metar.get('wind_speed_kt', 'N/A')} kt")
+    print(f"Visibility: {metar.get('visibility_statute_mi', 'N/A')} mi")
+    print(f"Altimeter: {metar.get('altim_in_hg', 'N/A')} inHg")
+    print(f"Flight Category: {metar.get('flight_category', 'N/A')}")
+
+    clouds = metar.get("clouds", [])
+    if clouds:
+        print("Cloud Layers:")
+        for c in clouds:
+            print(f"  {c.get('text', 'N/A')}")
 
 def main():
-    icao_code = input("Enter ICAO airport code (e.g., KJFK, EGLL): ")
-    fetch_metar(icao_code)
+    icao = input("Enter ICAO airport code (e.g., KMCI, KJFK): ").strip()
+    metar = fetch_metar(icao)
+    if metar:
+        display_metar(metar)
 
 if __name__ == "__main__":
     main()
