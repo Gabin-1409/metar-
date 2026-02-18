@@ -1,0 +1,52 @@
+import requests
+
+def fetch_metar(icao: str):
+    """
+    Fetch the latest METAR for a given ICAO code using AviationWeather.gov Data API.
+    """
+    base_url = "https://aviationweather.gov/api/data/metar"
+    params = {
+        "ids": icao.upper(),     # ICAO code (e.g., KJFK, EGLL)
+        "format": "json",        # JSON output
+        "hours": "1",            # recent data (last 1 hour)
+    }
+    
+    # Make request
+    try:
+        response = requests.get(base_url, params=params, timeout=10)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Error retrieving METAR: {e}")
+        return
+
+    data = response.json()
+    results = data.get("data", [])
+    
+    if not results:
+        print(f"No METAR data available for {icao.upper()}.")
+        return
+
+    metar = results[0]
+    
+    # Extract some fields
+    raw_text = metar.get("raw_text", "N/A")
+    station = metar.get("station_id", "N/A")
+    obs_time = metar.get("observation_time", "N/A")
+    temp_c = metar.get("temp_c", "N/A")
+    wind_dir_degrees = metar.get("wind_dir_degrees", "N/A")
+    wind_speed_kt = metar.get("wind_speed_kt", "N/A")
+    visibility_statute_mi = metar.get("visibility_statute_mi", "N/A")
+    
+    print(f"\n=== METAR for {station} ===")
+    print(f"Observation Time: {obs_time}")
+    print(f"Raw METAR Text: {raw_text}")
+    print(f"Temperature: {temp_c} °C")
+    print(f"Wind: {wind_dir_degrees}° at {wind_speed_kt} kt")
+    print(f"Visibility: {visibility_statute_mi} statute miles\n")
+
+def main():
+    icao_code = input("Enter ICAO airport code (e.g., KJFK, EGLL): ")
+    fetch_metar(icao_code)
+
+if __name__ == "__main__":
+    main()
